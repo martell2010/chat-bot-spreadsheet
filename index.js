@@ -3,6 +3,15 @@ import getWords from "./spreadsheet.js";
 import { ACTIONS, INTERVALS } from './constants.js';
 import env from './env.js';
 
+import express from 'express';
+const app = express()
+const port = env.PORT || 3000;
+
+app.listen(port, () => {
+   console.log(`Example app listening on port ${port}`)
+})
+
+
 const bot = new TelegramBot(env.TELEGRAM_TOKEN, { polling: true });
 
 const INTERVAL_TIME = 600_000;
