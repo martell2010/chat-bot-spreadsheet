@@ -12,6 +12,7 @@ const INTERVAL_TIME = 600_000;
 
 let words = [];
 let ids = new Set();
+const CONFIGS_BY_USER = new Map();
 
 
 const escapeText = (text) => text.replace(/([|{\[\]*_~}+)(#>!=\-.])/gm, '\\$1');
@@ -42,6 +43,10 @@ bot.setMyCommands(
       command: ACTIONS.reverse,
       description: "Reverse card EN-UA or UA-EN",
     },
+    {
+      command: ACTIONS.repeat,
+      description: "Repeat words",
+    },
   ])
 );
 
@@ -63,7 +68,7 @@ const generateIds = () =>
       .sort(() => 0.5 - Math.random())
   );
 
-const loadWords = async (force = false) => {
+const loadWords = async (force = false, isRepeat = false) => {
   if (words.length && !force) {
     return;
   }
@@ -74,6 +79,12 @@ const loadWords = async (force = false) => {
   } else {
     words = await loadDB();
   }
+
+  if (isRepeat) {
+    words = words.filter((word) => word.repeat);
+  }
+
+  console.log('Dictionary length', words.length);
 
   ids = generateIds();
 };
@@ -132,8 +143,6 @@ const sendWord = async (chatId, isReversed = false) => {
   });
 };
 
-const CONFIGS_BY_USER = new Map();
-
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const messageText = msg.text;
@@ -146,6 +155,7 @@ bot.on("message", async (msg) => {
       interval: INTERVAL_TIME,
       isAddedWords: false,
       isReversed: false,
+      isRepeat: false,
     });
   }
 
@@ -153,7 +163,7 @@ bot.on("message", async (msg) => {
 
   if (messageText === ACTIONS.start) {
     bot.sendMessage(chatId, "Started");
-    await loadWords();
+    await loadWords(false,  CURRENT_CONFIG.isRepeat);
     sendWord(chatId, CURRENT_CONFIG.isReversed);
     clearInterval(CURRENT_CONFIG.timer);
     CURRENT_CONFIG.timer = setInterval(
@@ -168,13 +178,19 @@ bot.on("message", async (msg) => {
   }
 
   if (messageText === ACTIONS.update) {
-    await loadWords(true);
+    await loadWords(true,  CURRENT_CONFIG.isRepeat);
     bot.sendMessage(chatId, "Updated");
   }
 
   if (messageText === ACTIONS.setInterval) {
-    await loadWords(true);
+    await loadWords(true, CURRENT_CONFIG.isRepeat);
     bot.sendMessage(chatId, "Set message interval", intervalButtons);
+  }
+
+  if(messageText === ACTIONS.repeat) {
+    CURRENT_CONFIG.isRepeat = !CURRENT_CONFIG.isRepeat;
+    bot.sendMessage(chatId, CURRENT_CONFIG.isRepeat ? "Repeat is on" : "Repeat is off");
+    await loadWords(false, CURRENT_CONFIG.isRepeat);
   }
 
   if (Object.values(INTERVALS).includes(messageText)) {

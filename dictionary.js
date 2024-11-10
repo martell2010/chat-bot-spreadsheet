@@ -27,8 +27,8 @@ export const readDictionary = async () => {
   console.info("END Reading dictionary");
 
   return rows.map(({ _rawData }) => {
-    const [word, pronounce, translate, examples] = _rawData;
-    return { word, pronounce, translate, examples };
+    const [word, pronounce, translate, examples, repeat] = _rawData;
+    return { word, pronounce, translate, examples, repeat: Boolean(Number(repeat)) };
   });
 };
 

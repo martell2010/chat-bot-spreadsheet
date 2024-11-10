@@ -5,6 +5,7 @@ export const ACTIONS= {
     setInterval: '/setinterval',
     writeWords: '/write',
     reverse: '/reverse',
+    repeat: '/repeat',
 };
 
 export const INTERVALS = {
