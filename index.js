@@ -15,7 +15,7 @@ let words = [];
 let ids = new Set();
 const CONFIGS_BY_USER = new Map();
 
-const escapeText = (text) => text.replace(/([|{\[\]*_~}+)(#>!=\-.])/gm, "\\$1");
+const escapeText = (text) => text?.replace(/([|{\[\]*_~}+)(#>!=\-.])/gm, "\\$1");
 
 bot.setMyCommands(
   JSON.stringify([

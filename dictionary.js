@@ -50,6 +50,7 @@ export const writeWordToDictionary = async (wordEntity) => {
 
     return true;
   } catch (error) {
+    console.log('Write word to dictionary error', error);
     return false;
   }
 };
