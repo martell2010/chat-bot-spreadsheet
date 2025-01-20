@@ -6,6 +6,7 @@ export const ACTIONS= {
     writeWords: '/write',
     reverse: '/reverse',
     repeat: '/repeat',
+    hideText: '/hide-text',
 };
 
 export const INTERVALS = {

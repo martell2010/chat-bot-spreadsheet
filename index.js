@@ -5,6 +5,7 @@ import env from "./env.js";
 
 import { generateWords } from "./generateWords.js";
 import { loadDB, saveDB } from "./db/db.js";
+import e from "express";
 
 const bot = new TelegramBot(env.TELEGRAM_TOKEN, { polling: true });
 
@@ -14,8 +15,7 @@ let words = [];
 let ids = new Set();
 const CONFIGS_BY_USER = new Map();
 
-
-const escapeText = (text) => text.replace(/([|{\[\]*_~}+)(#>!=\-.])/gm, '\\$1');
+const escapeText = (text) => text.replace(/([|{\[\]*_~}+)(#>!=\-.])/gm, "\\$1");
 
 bot.setMyCommands(
   JSON.stringify([
@@ -46,6 +46,10 @@ bot.setMyCommands(
     {
       command: ACTIONS.repeat,
       description: "Repeat words",
+    },
+    {
+      command: ACTIONS.hideText,
+      description: "Hide hints",
     },
   ])
 );
@@ -84,7 +88,7 @@ const loadWords = async (force = false, isRepeat = false) => {
     words = words.filter((word) => word.repeat);
   }
 
-  console.log('Dictionary length', words.length);
+  console.log("Dictionary length", words.length);
 
   ids = generateIds();
 };
@@ -105,40 +109,37 @@ const getWord = async () => {
   return word;
 };
 
-const getMessageTemplate = (wordEntity, isReversed = false) => {
+const getHiddenText = (text, enabled = true) =>
+  enabled ? `||${text}||` : text;
+
+const getTemplate = (word, translate, pronounce, examples, hide) => {
+  return `
+💬 *Word:* ${translate}
+
+🗣️ *Pronounce:* ${getHiddenText(pronounce, hide)}
+
+🇺🇸 *Translate:* ${getHiddenText(word, hide)}
+
+📃 *Example* 
+${getHiddenText(examples)}
+`;
+};
+
+const getMessageTemplate = (wordEntity, isReversed, hide) => {
   const word = escapeText(wordEntity.word);
   const pronounce = escapeText(wordEntity.pronounce);
   const translate = escapeText(wordEntity.translate);
   const examples = escapeText(wordEntity.examples);
 
-  if (isReversed) {
-    return `
-💬 *Words:* ${translate}
-
-🗣️ *Pronounce:* ||${pronounce}||
-
-🇺🇸 *Translate:* ||${word}||
-
-📃 *Example* 
-||${examples}||
-`;
-  }
-
-  return `
-💬 *Word:* ${word}
-
-🗣️ *Pronounce:* ||${pronounce}||
-
-🇺🇦 *Translate:* ||${translate}||
-
-📃 *Example* 
-||${examples}||
-    `;
+  return isReversed
+    ? getTemplate(word, translate, pronounce, examples, hide)
+    : getTemplate(translate, word, pronounce, examples, hide);
 };
-const sendWord = async (chatId, isReversed = false) => {
+
+const sendWord = async (chatId, isReversed, isHideText) => {
   const wordEntity = await getWord();
 
-  bot.sendMessage(chatId, getMessageTemplate(wordEntity, isReversed), {
+  bot.sendMessage(chatId, getMessageTemplate(wordEntity, isReversed, isHideText), {
     parse_mode: "MarkdownV2",
   });
 };
@@ -156,6 +157,7 @@ bot.on("message", async (msg) => {
       isAddedWords: false,
       isReversed: false,
       isRepeat: false,
+      isHideText: false,
     });
   }
 
@@ -163,11 +165,11 @@ bot.on("message", async (msg) => {
 
   if (messageText === ACTIONS.start) {
     bot.sendMessage(chatId, "Started");
-    await loadWords(false,  CURRENT_CONFIG.isRepeat);
-    sendWord(chatId, CURRENT_CONFIG.isReversed);
+    await loadWords(false, CURRENT_CONFIG.isRepeat);
+    sendWord(chatId, CURRENT_CONFIG.isReversed, CURRENT_CONFIG.isHideText);
     clearInterval(CURRENT_CONFIG.timer);
     CURRENT_CONFIG.timer = setInterval(
-      () => sendWord(chatId, CURRENT_CONFIG.isReversed),
+      () => sendWord(chatId, CURRENT_CONFIG.isReversed, CURRENT_CONFIG.isHideText),
       CURRENT_CONFIG.interval
     );
   }
@@ -178,7 +180,7 @@ bot.on("message", async (msg) => {
   }
 
   if (messageText === ACTIONS.update) {
-    await loadWords(true,  CURRENT_CONFIG.isRepeat);
+    await loadWords(true, CURRENT_CONFIG.isRepeat);
     bot.sendMessage(chatId, "Updated");
   }
 
@@ -187,9 +189,18 @@ bot.on("message", async (msg) => {
     bot.sendMessage(chatId, "Set message interval", intervalButtons);
   }
 
-  if(messageText === ACTIONS.repeat) {
+  if(messageText === ACTIONS.hideText) {
+    CURRENT_CONFIG.isHideText = !CURRENT_CONFIG.isHideText;
+    bot.sendMessage(chatId, CURRENT_CONFIG.isHideText ? "Hints are hidden" : "Hints are shown");
+    return;
+  }
+
+  if (messageText === ACTIONS.repeat) {
     CURRENT_CONFIG.isRepeat = !CURRENT_CONFIG.isRepeat;
-    bot.sendMessage(chatId, CURRENT_CONFIG.isRepeat ? "Repeat is on" : "Repeat is off");
+    bot.sendMessage(
+      chatId,
+      CURRENT_CONFIG.isRepeat ? "Repeat is on" : "Repeat is off"
+    );
     await loadWords(false, CURRENT_CONFIG.isRepeat);
   }
 
@@ -202,7 +213,7 @@ bot.on("message", async (msg) => {
     clearInterval(CURRENT_CONFIG.timer);
 
     CURRENT_CONFIG.timer = setInterval(
-      () => sendWord(chatId, CURRENT_CONFIG.isReversed),
+      () => sendWord(chatId, CURRENT_CONFIG.isReversed, CURRENT_CONFIG.isHideText),
       CURRENT_CONFIG.interval
     );
 
@@ -247,7 +258,7 @@ bot.on("message", async (msg) => {
       bot.sendMessage(chatId, "Word was successfully added");
       bot.sendMessage(
         chatId,
-        getMessageTemplate(wordEntity, CURRENT_CONFIG.isReversed),
+        getMessageTemplate(wordEntity, CURRENT_CONFIG.isReversed, CURRENT_CONFIG.isHideText),
         { parse_mode: "MarkdownV2" }
       );
     }
