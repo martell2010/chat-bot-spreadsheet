@@ -1,5 +1,6 @@
 node_modules/
 
 .env.local
+config.js
 
 scrumpocker-347107-22132e179a91.json

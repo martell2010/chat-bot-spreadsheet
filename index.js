@@ -2,10 +2,10 @@ import TelegramBot from "node-telegram-bot-api";
 import { readDictionary, writeWordToDictionary } from "./dictionary.js";
 import { ACTIONS, INTERVALS } from "./constants.js";
 import env from "./env.js";
+import { CONFIG } from "./config.js";
 
 import { generateWords } from "./generateWords.js";
 import { loadDB, saveDB } from "./db/db.js";
-import e from "express";
 
 const bot = new TelegramBot(env.TELEGRAM_TOKEN, { polling: true });
 
@@ -41,7 +41,7 @@ bot.setMyCommands(
     },
     {
       command: ACTIONS.reverse,
-      description: "Reverse card EN-UA or UA-EN",
+      description: `Reverse card ${CONFIG.langCode.toLocaleUpperCase()}-${CONFIG.translationCode.toLocaleUpperCase()} or ${CONFIG.translationCode.toLocaleUpperCase()}-${CONFIG.langCode.toLocaleUpperCase()}`, 
     },
     {
       command: ACTIONS.repeat,
@@ -118,10 +118,10 @@ const getTemplate = (word, translate, pronounce, examples, hide) => {
 
 🗣️ *Pronounce:* ${getHiddenText(pronounce, hide)}
 
-🇺🇸 *Translate:* ${getHiddenText(word, hide)}
+${CONFIG.flag} *Translate:* ${getHiddenText(word, hide)}
 
 📃 *Example* 
-${getHiddenText(examples)}
+${getHiddenText(examples, hide)}
 `;
 };
 
@@ -228,7 +228,7 @@ bot.on("message", async (msg) => {
     CURRENT_CONFIG.isReversed = !CURRENT_CONFIG.isReversed;
     bot.sendMessage(
       chatId,
-      CURRENT_CONFIG.isReversed ? "Card set to UA-EN" : "Card set to EN-UA"
+      CURRENT_CONFIG.isReversed ? `Card set to  ${CONFIG.translationCode.toLocaleUpperCase()}-${CONFIG.langCode.toLocaleUpperCase()}` : `Card set to ${CONFIG.langCode.toLocaleUpperCase()}-${CONFIG.translationCode.toLocaleUpperCase()}`
     );
     return;
   }

@@ -1,6 +1,6 @@
 import axios from "axios";
-import { SYSTEM_PROMT } from "./constants.js";
 import env from "./env.js";
+import { CONFIG } from "./config.js";
 
 const {
   CHAT_GPT_API_KEY,
@@ -31,7 +31,7 @@ export const generateWords = async (words) => {
       messages: [
         {
           role: "system",
-          content: SYSTEM_PROMT,
+          content: CONFIG.prompt,
         },
         {
           role: "user",
